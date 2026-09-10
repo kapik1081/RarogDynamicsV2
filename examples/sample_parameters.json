@@ -1,0 +1,68 @@
+{
+  "mass": 5.0,
+  "inertia": {"Ixx": 0.35, "Iyy": 0.5, "Izz": 0.7, "Ixz": 0.02},
+  "wing_area": 0.8,
+  "wingspan": 2.0,
+  "mean_chord": 0.4,
+  "propeller_diameter": 0.4,
+  "CT": 0.1,
+  "Kq": 0.01,
+  "engine_span": 0.65,
+  "engine_height": -0.12,
+  "tilt_time_constant": 0.15,
+  "tilt_max_rate": 2.0,
+  "air_density": 1.225,
+  "gravity": 9.80665,
+  "gravity_model": "small_angle",
+  "stall": {
+    "enabled": true,
+    "alpha_positive": 0.2617993877991494,
+    "alpha_negative": -0.2617993877991494,
+    "transition_width": 0.05235987755982989,
+    "drag_max": 1.8
+  },
+  "aerodynamics": {
+    "lift": {
+      "angle_unit": "deg",
+      "bounds": "clamp",
+      "alphas": [-15, 0, 15],
+      "betas": [-10, 0, 10],
+      "values": [[-0.8, 0.18, 1.1], [-0.9, 0.2, 1.2], [-0.8, 0.18, 1.1]]
+    },
+    "drag": {
+      "angle_unit": "deg",
+      "bounds": "clamp",
+      "alphas": [-15, 0, 15],
+      "betas": [-10, 0, 10],
+      "values": [[0.14, 0.05, 0.16], [0.12, 0.03, 0.14], [0.14, 0.05, 0.16]]
+    },
+    "sideforce": {
+      "angle_unit": "deg",
+      "bounds": "clamp",
+      "alphas": [-15, 0, 15],
+      "betas": [-10, 0, 10],
+      "values": [[0.12, 0.15, 0.12], [0, 0, 0], [-0.12, -0.15, -0.12]]
+    },
+    "roll_0": 0.0,
+    "roll_beta": -0.08,
+    "roll_p": -0.4,
+    "roll_r": 0.1,
+    "roll_aileron": {
+      "angle_unit": "deg",
+      "alphas": [-15, 0, 15],
+      "betas": [-10, 0, 10],
+      "values": [[0.06, 0.1, 0.06], [0.07, 0.12, 0.07], [0.06, 0.1, 0.06]]
+    },
+    "roll_rudder": 0.02,
+    "pitch_0": 0.02,
+    "pitch_alpha": -0.5,
+    "pitch_q": -8.0,
+    "pitch_elevator": -0.8,
+    "yaw_0": 0.0,
+    "yaw_beta": 0.12,
+    "yaw_p": -0.02,
+    "yaw_r": -0.15,
+    "yaw_aileron": -0.02,
+    "yaw_rudder": -0.08
+  }
+}
