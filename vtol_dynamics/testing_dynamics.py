@@ -41,7 +41,7 @@ def _derivative(vector, controls, params, *, translation, rotation, engines):
 
     if translation:
         force += params.mass * gravity_acceleration(
-            state.roll, state.pitch, params.gravity, params.gravity_model)
+            state.roll, state.pitch, params.gravity)
         derivative[:3] = body_to_ned(state.roll, state.pitch, state.yaw) @ velocity
         # The translation-only frame is fixed, so its angular rates must be zero.
         derivative[6:9] = translational_acceleration(velocity, rates, force, params.mass)

@@ -36,7 +36,7 @@ def calculate_loads(state: State, controls: ControlInputs, params: ModelParamete
     forces = thrust_forces(state, controls, params)
     return Loads(
         aerodynamic_force(air, params), forces.sum(axis=0),
-        params.mass*gravity_acceleration(state.roll, state.pitch, params.gravity, params.gravity_model),
+        params.mass*gravity_acceleration(state.roll, state.pitch, params.gravity),
         aerodynamic_moment(air, [state.p, state.q, state.r], controls, params),
         thrust_moment(forces, params), reaction_moment(state, controls, params))
 

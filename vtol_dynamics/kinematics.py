@@ -29,12 +29,7 @@ def euler_rates(roll: float, pitch: float, body_rates) -> np.ndarray:
                      q*np.cos(roll) - r*np.sin(roll), mixed/np.cos(pitch)])
 
 
-def gravity_acceleration(roll: float, pitch: float, gravity: float,
-                         model: str = "small_angle") -> np.ndarray:
-    """Body gravity: Eq. 1.8 by default, or exact Eq. 1.7."""
-    if model == "small_angle":
-        return gravity*np.array([-pitch, roll, 1.0])
-    if model == "exact":
-        return gravity*np.array([-np.sin(pitch), np.sin(roll)*np.cos(pitch),
-                                 np.cos(roll)*np.cos(pitch)])
-    raise ValueError("unknown gravity model")
+def gravity_acceleration(roll: float, pitch: float, gravity: float) -> np.ndarray:
+    """Exact body-frame gravity, PDF Eq. 1.7 (earth NED gravity rotated to body)."""
+    return gravity*np.array([-np.sin(pitch), np.sin(roll)*np.cos(pitch),
+                             np.cos(roll)*np.cos(pitch)])

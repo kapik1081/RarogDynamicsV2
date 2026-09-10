@@ -13,7 +13,6 @@
   "tilt_max_rate": 2.0,
   "air_density": 1.225,
   "gravity": 9.80665,
-  "gravity_model": "small_angle",
   "stall": {
     "enabled": true,
     "alpha_positive": 0.2617993877991494,

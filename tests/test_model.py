@@ -84,9 +84,12 @@ class PhysicsTests(unittest.TestCase):
 
     def test_gravity_and_euler_rates(self):
         roll, pitch, yaw = 0.2, -0.4, 0.3
-        assert_allclose(gravity_acceleration(roll, pitch, 9.8, "exact"),
+        assert_allclose(gravity_acceleration(roll, pitch, 9.8),
                         body_to_ned(roll, pitch, yaw).T @ [0, 0, 9.8])
-        assert_allclose(gravity_acceleration(roll, pitch, 9.8), [3.92, 1.96, 9.8])
+        for roll, pitch in ((0, 0), (np.pi, 0), (.8, -.7), (-1.2, 1.1)):
+            gravity_body = gravity_acceleration(roll, pitch, 9.8)
+            assert_allclose(body_to_ned(roll, pitch, .3) @ gravity_body, [0, 0, 9.8], atol=1e-14)
+            self.assertAlmostEqual(np.linalg.norm(gravity_body), 9.8)
         assert_allclose(euler_rates(0, 0, [1, 2, 3]), [1, 2, 3])
         with self.assertRaises(ValueError):
             euler_rates(0, np.pi/2, [0, 0, 0])
@@ -256,7 +259,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(constrained[2], 0)
 
     def test_rotated_ground_contact_with_exact_gravity(self):
-        params = parameters(gravity_model="exact")
+        params = parameters()
         initial = State(roll=.4, pitch=.3, yaw=.2)
         model = VTOLModel(params, initial, terrain_collision=True)
         assert_allclose(model.step(ControlInputs(), 2).as_vector(), initial.as_vector(), atol=1e-12)
@@ -321,7 +324,7 @@ class ParameterTests(unittest.TestCase):
 
     def test_invalid_parameters(self):
         for changes in ({"mass": 0}, {"tilt_time_constant": 0}, {"CT": -1},
-                        {"engine_height": np.nan}, {"gravity_model": "bad"}):
+                        {"engine_height": np.nan}, {"gravity": -1}):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 parameters(**changes)
         with self.assertRaises(ValueError):

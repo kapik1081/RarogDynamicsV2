@@ -3,7 +3,6 @@
 from dataclasses import dataclass, field, fields
 import json
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 
@@ -112,7 +111,6 @@ class ModelParameters:
     tilt_max_rate: float
     air_density: float = 1.225
     gravity: float = 9.80665
-    gravity_model: Literal["small_angle", "exact"] = "small_angle"
     aerodynamics: AerodynamicCoefficients = field(default_factory=AerodynamicCoefficients)
     stall: StallParameters = field(default_factory=StallParameters)
 
@@ -127,8 +125,6 @@ class ModelParameters:
             if (name in positive and value <= 0) or (name in nonnegative and value < 0):
                 raise ValueError(f"invalid {name}: {value}")
             object.__setattr__(self, name, value)
-        if self.gravity_model not in ("small_angle", "exact"):
-            raise ValueError("gravity_model must be 'small_angle' or 'exact'")
         for name, expected in (("inertia", Inertia), ("aerodynamics", AerodynamicCoefficients),
                                ("stall", StallParameters)):
             if not isinstance(getattr(self, name), expected):

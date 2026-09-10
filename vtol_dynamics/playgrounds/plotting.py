@@ -1,4 +1,4 @@
-"""Shared 3-D animation and time-history plots for the three playgrounds."""
+"""Shared 3-D animation and time-history plots for the playgrounds."""
 
 from dataclasses import dataclass
 

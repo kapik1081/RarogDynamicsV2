@@ -23,7 +23,7 @@ The supplied file is an XFLR5 v6.61 Type 1 VLM1 plane polar for
 `NACA 4418_v9_9`, with 23 rows: alpha = -11 through +11 degrees in 1-degree
 steps, beta = 0 degrees, and speed = 11 m/s.
 
-**Seven of the 42 simulation parameter slots can be recovered**, counting a
+**Seven of the 41 simulation parameter slots can be recovered**, counting a
 coefficient table as one slot and each inertia/stall field separately. Six are
 directly available; the seventh, `pitch_alpha`, is a numerical estimate.
 
@@ -44,14 +44,14 @@ again. `Cni` is not the total yaw coefficient `Cn`.
 With `--stall-at-extremes`, the two stall thresholds are assumed to be
 -11 and +11 degrees, written as **-0.19198621771937624 and
 0.19198621771937624 radians**. The flag also sets `stall.enabled` to `true`.
-Thus **10/42 slots are filled: seven recovered, two assumed thresholds, and one
+Thus **10/41 slots are filled: seven recovered, two assumed thresholds, and one
 explicit configuration choice**. `transition_width` and `drag_max` remain
 `"provide-data"`: the endpoints do not establish the post-stall model. Without
 the flag all five stall fields remain placeholders. An alpha range that does
 not straddle zero cannot supply the simulation's two stall thresholds.
 
 The export does not supply mass, the four inertia entries, reference geometry,
-propulsion and tilt-actuator data, density, gravity, or gravity model. It also
+propulsion and tilt-actuator data, density, or gravity magnitude. It also
 does not supply rate or control-surface derivatives. In particular, zero `Cl`
 and `Cn` at beta = 0 do **not** imply zero `roll_beta` or `yaw_beta`; these remain
 placeholders. `QInf` is an operating speed, not a static model parameter, and

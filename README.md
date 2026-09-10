@@ -22,8 +22,8 @@ Convert an XFLR5 plane polar text export into a parameter JSON template:
 ```
 
 The default output is `T1.json`. Missing values are `"provide-data"` and must
-be completed before simulation. The supplied polar recovers 7 of 42 parameter
-slots; the stall flag fills two assumed thresholds and enables stall (10/42).
+be completed before simulation. The supplied polar recovers 7 of 41 parameter
+slots; the stall flag fills two assumed thresholds and enables stall (10/41).
 See [the import guide and recovery report](docs/xflr5_import.md) for options,
 angle selection, units, and the limits of this beta-zero polar.
 
@@ -148,8 +148,10 @@ analytically cancels airspeed denominators in the moment equations.
 
 The implementation follows these choices from the PDF:
 
-- The default `gravity_model="small_angle"` implements Eq. 1.8 as selected in
-  the document. Set it to `"exact"` for Eq. 1.7 at larger bank/pitch angles.
+- Gravity always uses the full body-frame expression in Eq. 1.7:
+  `g * [-sin(pitch), sin(roll)*cos(pitch), cos(roll)*cos(pitch)]`.
+  Remove the obsolete `gravity_model` field from older JSON files and Python
+  parameter constructors; the gravity magnitude remains configurable.
 - Lift and drag use the stall blending in Eqs. 1.16–1.18. In Eq. 1.16 the
   negative-stall term divides by **negative** transition width. Set
   `stall.enabled=false` when tables already include the complete stall model.
@@ -220,7 +222,7 @@ RK45 `step(controls, dt)`, `time`, and solver options as `VTOLModel`.
 The bicopter variants omit all aerodynamics, including post-stall effects, and
 ignore surface deflections. The glider ignores both motor speeds and both tilt
 commands, while keeping aerodynamic control surfaces active. Inputs still pass
-the usual `ControlInputs` validation. Gravity follows `parameters.gravity_model`;
+the usual `ControlInputs` validation. All translating variants use exact gravity;
 use `dataclasses.replace(parameters, gravity=0.0)` for an experiment without
 gravity. The rotation-only variant has no gravity force calculation.
 
@@ -263,13 +265,14 @@ tests and engine parameters cannot create loads in glider tests. Existing
 functions such as `calculate_loads` in `dynamics.py` continue to describe the
 complete plant; use the reduced derivatives to inspect these testing models.
 
-Three interactive playgrounds provide an animated 3-D flight path and a separate
+Four interactive playgrounds provide an animated 3-D flight path and a separate
 statistics window. Run these commands from the repository root:
 
 ```powershell
 .\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.bicopter_translation --time 3 --propeller-speed 90 --engine-tilt 90
 .\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.bicopter_rotation --time 1 --right-engine-tilt 90 --left-engine-tilt 80 --right-propeller-speed 65 --left-propeller-speed 60
 .\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.glide --time 3 --u 12 --v 0 --w 0
+.\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.full_model --time 1 --right-engine-tilt 30 --left-engine-tilt 20 --right-propeller-speed 65 --left-propeller-speed 60 --u 12 --v 0 --w 0
 ```
 
 All command-line **tilts are in degrees**, propeller speeds are in **rev/s**,
@@ -292,7 +295,16 @@ For example:
 ```
 
 The glide playground starts with only `u`, `v`, and `w` set and keeps all control
-inputs zero. Terrain collision is disabled in all three experiments, allowing
+inputs zero. The `full_model` playground uses the complete `VTOLModel`, with
+engine forces/moments, aerodynamic forces/moments, gravity, and coupled
+translation/rotation all active. It accepts independent left/right engine tilt
+and speed commands plus initial body velocities `--u`, `--v`, and `--w`.
+Position, attitude, angular rates, and control-surface deflections are zero
+initially. Commands remain constant throughout the simulation; surface
+deflections stay zero. It also supports `--instant-tilt` (or `instant_tilt=True`
+in Python); otherwise actual engine tilts start at zero.
+
+Terrain collision is disabled in all four experiments, allowing
 motion below altitude zero. No trim, initial altitude, or initial attitude is
 added automatically.
 
@@ -309,8 +321,7 @@ actual left/right engine tilt. Angular plots use degrees. Kinetic energy is
 `0.5*m*(u²+v²+w²) + 0.5*omega.T @ I @ omega`, including rotational energy and
 the inertia cross term. Potential energy is `-m*g*z`, referenced to altitude
 zero, and is allowed to be negative. Total energy is their sum; powered flight
-and aerodynamic drag need not conserve it. The selected small-angle gravity
-approximation can also affect energy conservation away from level attitude.
+and aerodynamic drag need not conserve it.
 At zero airspeed, alpha and beta follow the model convention of zero.
 
 Shared optional arguments:

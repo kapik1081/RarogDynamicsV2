@@ -30,12 +30,12 @@ class TestingModelTests(unittest.TestCase):
         initial = State(z=-20, roll=.2, pitch=-.1, yaw=.3, u=3, v=1, w=-.2,
                         left_motor_tilt=.4, right_motor_tilt=.8)
         controls = ControlInputs(50, 70, left_motor_tilt=.4, right_motor_tilt=.8)
-        params = replace(self.params, gravity_model="exact")
+        params = self.params
         model = BicopterTranslationalModel(params, initial)
         tl, tr = [propeller_thrust(n, params) for n in (50, 70)]
         acceleration = np.array([tl*np.cos(.4)+tr*np.cos(.8), 0,
                                  -tl*np.sin(.4)-tr*np.sin(.8)]) / params.mass
-        acceleration += gravity_acceleration(initial.roll, initial.pitch, params.gravity, "exact")
+        acceleration += gravity_acceleration(initial.roll, initial.pitch, params.gravity)
         dt = .3
         result = model.step(controls, dt).as_vector()
         rotation = body_to_ned(initial.roll, initial.pitch, initial.yaw)
@@ -54,6 +54,28 @@ class TestingModelTests(unittest.TestCase):
                     BicopterTranslationalModel(self.params, state)
                 with self.assertRaisesRegex(ValueError, "fixed attitude"):
                     bicopter_translational_derivative(0, state.as_vector(), ControlInputs(), self.params)
+
+    def test_tilted_freefall_stays_vertical_in_earth_frame_for_all_translating_models(self):
+        params = replace(self.params, aerodynamics=AerodynamicCoefficients(),
+                         stall=StallParameters(enabled=False))
+        for model_type in (VTOLModel, BicopterTranslationalModel, BicopterFullModel, AerodynamicsOnlyModel):
+            with self.subTest(model=model_type.__name__):
+                initial = State(z=-20, roll=.8, pitch=-.7, yaw=.3, u=3, v=1, w=-.2)
+                if model_type is not BicopterTranslationalModel:
+                    initial = replace(initial, p=.2, q=-.1, r=.15)
+                initial_vector = initial.as_vector()
+                initial_velocity = body_to_ned(*initial_vector[3:6]) @ initial_vector[6:9]
+                dt = .4
+                model = model_type(params, initial, rtol=1e-10, atol=1e-12)
+                result = model.step(ControlInputs(), dt).as_vector()
+                final_velocity = body_to_ned(*result[3:6]) @ result[6:9]
+                assert_allclose(result[:3], initial_vector[:3] + initial_velocity*dt
+                                + np.array([0, 0, .5*params.gravity*dt**2]), atol=1e-9)
+                assert_allclose(final_velocity, initial_velocity + [0, 0, params.gravity*dt], atol=1e-9)
+                energies = [(.5*params.mass*(s[6:9] @ s[6:9])
+                             + .5*s[9:12] @ params.inertia.matrix() @ s[9:12]
+                             - params.mass*params.gravity*s[2]) for s in (initial_vector, result)]
+                self.assertAlmostEqual(energies[0], energies[1], places=7)
 
     def test_rotation_matches_constant_pitch_acceleration(self):
         params = replace(self.params, inertia=Inertia(.35, .5, .7))

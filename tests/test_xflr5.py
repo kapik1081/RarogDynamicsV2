@@ -21,7 +21,7 @@ POLAR = (ROOT / "T1.txt").read_text(encoding="utf-8")
 class PolarImportTests(unittest.TestCase):
     def test_supplied_polar_recovery_and_units(self):
         result = convert_polar(POLAR)
-        self.assertEqual(parameter_counts(result), (7, 42))
+        self.assertEqual(parameter_counts(result), (7, 41))
         aero = result["aerodynamics"]
         self.assertEqual(aero["lift"]["alphas"], list(range(-11, 12)))
         self.assertEqual(aero["lift"]["betas"], [0])
@@ -40,7 +40,7 @@ class PolarImportTests(unittest.TestCase):
 
     def test_stall_extremes_are_radians_and_missing_shape_is_not_inferred(self):
         result = convert_polar(POLAR, stall_at_extremes=True)
-        self.assertEqual(parameter_counts(result), (10, 42))
+        self.assertEqual(parameter_counts(result), (10, 41))
         stall = result["stall"]
         self.assertIs(stall["enabled"], True)
         self.assertAlmostEqual(stall["alpha_negative"], math.radians(-11))
@@ -103,7 +103,7 @@ class PolarImportTests(unittest.TestCase):
             command = [sys.executable, str(ROOT / "xflr5_to_parameters.py"), str(source)]
             run = subprocess.run(command, cwd=directory, capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stderr)
-            self.assertIn("7/42", run.stdout)
+            self.assertIn("7/41", run.stdout)
             self.assertEqual(json.loads(source.with_suffix(".json").read_text()), convert_polar(POLAR))
             output = Path(directory) / "custom.json"
             run = subprocess.run(command + ["--output", str(output), "--stall-at-extremes"],

@@ -18,7 +18,6 @@
   "tilt_max_rate": "provide-data",
   "air_density": "provide-data",
   "gravity": "provide-data",
-  "gravity_model": "provide-data",
   "stall": {
     "enabled": "provide-data",
     "alpha_positive": "provide-data",
