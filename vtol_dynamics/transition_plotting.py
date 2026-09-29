@@ -6,7 +6,7 @@ from .transition import TransitionResult
 
 
 def plot_transition(result: TransitionResult):
-    """Return a figure; callers control display and saving. Import matplotlib lazily."""
+    """Return a figure; callers control display and saving."""
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(10, 6.5), constrained_layout=True)

@@ -15,12 +15,7 @@ def _finite_fields(obj):
 
 @dataclass(frozen=True)
 class State:
-    """PDF Eq. 1.1 order, including RIGHT tilt before LEFT tilt.
-
-    Position is earth NED (z <= 0 above terrain). Attitude uses 3-2-1 Euler
-    angles. Linear and angular velocities are in body forward/right/down.
-    Tilt 0 points thrust forward; pi/2 points thrust upward.
-    """
+    """Eq. 1.1 order, """
 
     x: float = 0.0
     y: float = 0.0
@@ -53,11 +48,7 @@ class State:
 
 @dataclass(frozen=True)
 class ControlInputs:
-    """Motor speeds are rev/s, surfaces and commanded tilts are radians.
-
-    Commands are held constant throughout a step. Tilt commands drive the
-    nacelle actuator states, rather than directly replacing their angles.
-    """
+    """Motor speeds are rev/s, surfaces and commanded tilts are radians."""
 
     left_propeller_speed: float = 0.0
     right_propeller_speed: float = 0.0

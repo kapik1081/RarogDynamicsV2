@@ -11,7 +11,7 @@ from .coefficients import Coefficient, CoefficientMap
 
 @dataclass(frozen=True)
 class Inertia:
-    """kg m^2; PDF Eq. 1.29 places MINUS Ixz in the off-diagonals."""
+    """kg m^2; Eq. 1.29 places MINUS Ixz in the off-diagonals."""
 
     Ixx: float
     Iyy: float
@@ -31,7 +31,7 @@ class Inertia:
 
 @dataclass(frozen=True)
 class StallParameters:
-    """Eqs. 1.16-1.18. Disable if the tables already describe post-stall flow."""
+    """Eqs. 1.16-1.18."""
 
     enabled: bool = True
     alpha_positive: float = float(np.deg2rad(15))
@@ -53,12 +53,7 @@ class StallParameters:
 
 @dataclass(frozen=True)
 class AerodynamicCoefficients:
-    """Each entry may be an alpha/beta map or a scalar constant.
-
-    lift/drag/sideforce correspond to Cl/Cd/Cy in Eqs. 1.19-1.21.
-    roll_*, pitch_*, yaw_* correspond to Cl*, Cm*, Cn* in 1.59-1.61.
-    Derivatives multiply angles in radians and nondimensional body rates.
-    """
+    """Each entry may be an alpha/beta map or a scalar constant."""
 
     lift: Coefficient = 0.0
     drag: Coefficient = 0.0

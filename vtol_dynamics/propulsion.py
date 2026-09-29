@@ -12,7 +12,7 @@ def tilt_rate(actual: float, commanded: float, time_constant: float, max_rate: f
 
 
 def propeller_thrust(speed: float, params: ModelParameters) -> float:
-    """Eq. 1.9; speed is rev/s (neither RPM nor rad/s)."""
+    """Eq. 1.9; speed is rev/s"""
     return params.CT * params.air_density * speed**2 * params.propeller_diameter**4
 
 
@@ -37,11 +37,7 @@ def thrust_moment(forces: np.ndarray, params: ModelParameters) -> np.ndarray:
 
 
 def reaction_moment(state: State, controls: ControlInputs, params: ModelParameters) -> np.ndarray:
-    """Counter-rotating torque, preserving PDF signs in Eqs. 1.49-1.51.
-
-    In particular, the right propeller contributes POSITIVE sin(tilt) to z.
-    This convention is kept explicit for validation against the document.
-    """
+    """Counter-rotating torque, preserving signs in Eqs. 1.49-1.51."""
     left = propeller_torque(controls.left_propeller_speed, params)
     right = propeller_torque(controls.right_propeller_speed, params)
     return np.array([right*np.cos(state.right_motor_tilt)-left*np.cos(state.left_motor_tilt),

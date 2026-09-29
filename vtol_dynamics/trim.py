@@ -82,12 +82,7 @@ def hover_trim(params: ModelParameters) -> TrimSolution:
 
 
 def aerodynamic_alpha_range(params: ModelParameters) -> tuple[float, float]:
-    """Full atan2 alpha domain [-pi, pi], intersected with strict map bounds.
-
-    Scalars and clamped tables remain evaluable throughout [-pi, pi], including
-    the post-stall extension. A bounds='raise' map restricts the evaluable range.
-    All required tables must admit beta=0 for the symmetric flight assumption.
-    """
+    """Full atan2 alpha domain [-pi, pi], intersected with strict map bounds."""
     low, high = -np.pi, np.pi
     for field in fields(params.aerodynamics):
         table = getattr(params.aerodynamics, field.name)
@@ -118,12 +113,7 @@ def forward_residual(alpha: float, airspeed: float, engine_tilt: float,
 
 
 def bracketed_roots(function: Callable[[float], float], grid) -> tuple[float, ...]:
-    """Collect exact grid zeros and solve every sign-changing interval with Brent.
-
-    No Newton iterations or single initial guess. Roots closer than 1e-9 rad
-    are deduplicated. Even-multiplicity roots not on the grid may be missed;
-    increasing grid density resolves more closely spaced sign-changing roots.
-    """
+    """Collect exact grid zeros and solve every sign-changing interval with Brent."""
     grid = np.asarray(grid, dtype=float)
     if grid.ndim != 1 or len(grid) < 2 or not np.all(np.isfinite(grid)) or np.any(np.diff(grid) <= 0):
         raise ValueError("Root grid must contain at least two finite, strictly increasing points")
@@ -213,14 +203,7 @@ def forward_flight_trim(params: ModelParameters, engine_tilt: float, airspeed: f
                         max_engine_rpm: float | None = None,
                         alpha_min: float | None = None, alpha_max: float | None = None,
                         grid_points: int = 4001) -> ForwardTrimResult:
-    """Find all bracketed trims, reject infeasible candidates, select low |alpha|.
-
-    Python angles/limits use radians; speed is m/s; the RPM limit uses RPM.
-    Pre-stall candidates take priority over post-stall candidates. Validity
-    limits filter roots AFTER searching the full aerodynamic model domain.
-    None means no user-imposed limit; propulsion/projection/equilibrium checks
-    always apply. The full model's Euler singularities remain excluded.
-    """
+    """Find all bracketed trims, reject infeasible candidates, select low |alpha|."""
     if not np.isfinite(engine_tilt) or not np.isfinite(airspeed) or airspeed <= 0:
         raise ValueError("engine_tilt must be finite and airspeed must be finite and positive")
     _thrust_factor(params)

@@ -1,8 +1,6 @@
 """Transition trim surface and branch-aware path search (PDF section 2.3).
 
-Coordinates are (airspeed, tilt, pitch, total thrust, elevator), in SI units.
-This constructs a numerical steady-trim corridor, not a timed flight trajectory.
-"""
+Coordinates are (airspeed, tilt, pitch, total thrust, elevator), in SI units."""
 
 from dataclasses import dataclass, fields
 import heapq
@@ -76,7 +74,7 @@ class TransitionResult:
 
 
 def trim_residual(z, params: ModelParameters):
-    """Nondimensional Eq. 2.27/2.57, with exact zero-speed load limits."""
+    """Eq. 2.27/2.57, with exact zero-speed load limits."""
     speed, tilt, pitch, thrust, elevator = z
     weight = params.mass*params.gravity
     if speed == 0:
@@ -229,7 +227,7 @@ class _Surface:
         return TransitionPoint(solution, power, float(min(reserves)))
 
     def reconstruct(self, speed, tilt, pitch):
-        """Eq. 2.29 and division-free elevator feasibility (2.34)."""
+        """Eq. 2.29 and (2.34)."""
         p = self.params
         lift, drag = longitudinal_forces(pitch, speed, p)
         thrust = drag*np.cos(tilt+pitch)+(self.weight-lift)*np.sin(tilt+pitch)
@@ -248,7 +246,7 @@ class _Surface:
         return self.accept(np.array([speed, tilt, pitch, thrust, elevator]))
 
     def correct_chart(self, start, independent, target):
-        """Eq. 2.56 predictor and nonlinear corrector in a selected chart."""
+        """Eq. 2.56"""
         x = np.asarray(start)/self.scale
         independent = list(independent)
         dependent = [i for i in range(5) if i not in independent]
@@ -280,11 +278,7 @@ class _Surface:
             return None
 
     def arclength(self, seed, step=.04, count=80):
-        """Fixed-speed fold traversal, Eqs. 2.58-2.59, in scaled coordinates.
-
-        Continue the unconstrained surface; acceptance is a separate operation.
-        Both directions are traced, so a projection fold does not end a branch.
-        """
+        """Fixed-speed fold traversal, Eqs. 2.58-2.59, in scaled coordinates."""
         for direction in (-1, 1):
             x = seed/self.scale
             previous = None
@@ -323,11 +317,7 @@ class _Surface:
 
 
 def _connect(surface, first, last, step=.035):
-    """Correct interpolated independent coordinates; check every intermediate trim.
-
-    Adaptive subdivision and a bound on the correction prevent hopping between
-    nearby projected branches. Endpoint identity includes all trim controls.
-    """
+    """Correct interpolated independent coordinates; check every intermediate trim."""
     start, end = first.coordinates, last.coordinates
     limits = surface.limits
     if limits.monotone_airspeed and end[0] < start[0]-1e-10:
@@ -454,13 +444,7 @@ def transition_trim_manifold(params: ModelParameters, constraints: TransitionCon
                              tilt_points: int = 31, pitch_points: int = 241,
                              elevator_points: int = 9,
                              progress: Callable[[str], None] | None = None) -> TransitionResult:
-    """Construct overlapping charts, retain branches, then search validated edges.
-
-    Limits and Python coordinates use radians, m/s, RPM and total shaft watts.
-    Quadratic speed spacing and the regular hover chart resolve the O(Va**2)
-    neck. Global scalar searches include tangencies and aerodynamic table knots.
-    The result is sampled evidence; absence of a route is not nonexistence proof.
-    """
+    """Construct overlapping charts, retain branches, then search validated edges."""
     cruise = ((float(cruise_airspeed),)*2 if np.isscalar(cruise_airspeed)
               else tuple(cruise_airspeed))
     if len(cruise) != 2 or not np.all(np.isfinite(cruise)) or not 0 < cruise[0] <= cruise[1]:
