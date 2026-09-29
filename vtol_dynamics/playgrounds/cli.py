@@ -32,10 +32,12 @@ def nonnegative_number(value):
     return number
 
 
-def common_parser(description):
+def common_parser(description, *, default_simulation_time=None):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--time", "--simulation-time", dest="simulation_time", required=True,
-                        type=positive_number, help="Simulation duration [s]")
+    parser.add_argument("--time", "--simulation-time", dest="simulation_time",
+                        required=default_simulation_time is None, default=default_simulation_time,
+                        type=positive_number, help="Simulation duration [s]" +
+                        (f" (default: {default_simulation_time:g})" if default_simulation_time is not None else ""))
     parser.add_argument("--parameters", type=Path,
                         default=Path(__file__).resolve().parents[2]/"examples/sample_parameters.json",
                         help="Static parameter JSON (default: repository sample)")
@@ -44,7 +46,8 @@ def common_parser(description):
     parser.add_argument("--playback-speed", type=positive_number, default=1,
                         help="Animation speed multiplier (default: 1)")
     parser.add_argument("--axis-length", type=positive_number,
-                        help="Displayed body/engine line length [m] (default: half wingspan)")
+                        help="Minimum body/engine line length [m]; automatically enlarged for long paths "
+                             "(default: half wingspan)")
     parser.add_argument("--output", type=Path, help="Save flight.html, statistics.png and history.csv in this directory")
     parser.add_argument("--no-show", action="store_true", help="Run without GUI windows (can be combined with --output)")
     return parser

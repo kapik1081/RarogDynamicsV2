@@ -95,6 +95,45 @@ class PlaygroundTests(unittest.TestCase):
         self.assertEqual(len(frames), 11)
         assert_allclose(animation_frames([0, .001], 30, 1), [0, 1])
 
+    def test_craft_stays_visible_and_in_bounds_on_long_paths(self):
+        original = bicopter_rotation.run(self.params, .04, .3, .6, 65, 60)
+        for span, axis_length in ((0, None), (1000, None), (1e6, 2)):
+            with self.subTest(span=span, axis_length=axis_length):
+                states = original.states.copy()
+                states[:, :3] = np.linspace([10, -20, -30], [10+span, -20-span, -30-span], len(states))
+                expected_states = states.copy()
+                history = replace(original, states=states)
+                display = create_display(history, fps=10, axis_length=axis_length)
+                try:
+                    display.flight_figure.canvas.draw()
+                    ax = display.flight_figure.axes[0]
+                    limits = np.array([ax.get_xlim(), ax.get_ylim(), ax.get_zlim()])
+                    base_length = self.params.wingspan/2 if axis_length is None else axis_length
+                    lengths = []
+                    for index in (0, len(states)-1):
+                        display.animation._func(index)
+                        segments = np.array([np.array(line.get_data_3d()).T for line in ax.lines[1:]])
+                        origin = states[index, :3]*[1, 1, -1]
+                        line_lengths = np.linalg.norm(segments[:, 1]-segments[:, 0], axis=1)
+                        lengths.append(line_lengths[0])
+                        assert_allclose(line_lengths, lengths[-1])
+                        if span:
+                            self.assertGreater(lengths[-1]/np.ptp(limits[0]), .07)
+                        else:
+                            self.assertAlmostEqual(lengths[-1], base_length)
+                        # Enlargement preserves body directions and engine spacing.
+                        natural = craft_segments(states[index], self.params, base_length)
+                        assert_allclose((segments-origin)/lengths[-1],
+                                        (natural-origin)/base_length, atol=1e-9)
+                        self.assertTrue(np.all(segments >= limits[:, 0]))
+                        self.assertTrue(np.all(segments <= limits[:, 1]))
+                    assert_allclose(lengths[0], lengths[1])
+                    assert_allclose(np.array(ax.lines[0].get_data_3d()).T, states[:, :3]*[1, 1, -1])
+                    assert_allclose(history.states, expected_states)
+                finally:
+                    plt.close(display.statistics_figure)
+                    plt.close(display.flight_figure)
+
     def test_headless_figures_and_html_animation_render(self):
         history = bicopter_translation.run(self.params, .04, 50, .3)
         display = create_display(history, fps=10)

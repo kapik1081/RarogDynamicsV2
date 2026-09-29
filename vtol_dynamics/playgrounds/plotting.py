@@ -11,18 +11,21 @@ from ..parameters import ModelParameters
 from .simulation import FlightHistory, flight_statistics
 
 
-def craft_segments(vector, parameters: ModelParameters, axis_length: float) -> np.ndarray:
+def craft_segments(vector, parameters: ModelParameters, axis_length: float, *,
+                   scale: float = 1) -> np.ndarray:
     """Five segments (start/end points): +body x/y/z, left/right thrust axes.
 
     Return shape (5, 2, 3) in display coordinates north/east/altitude. Engine
-    lines originate at their actual body offsets and use actual nacelle states.
+    lines use actual nacelle states. Scale enlarges both the lines and engine
+    offsets uniformly about the craft position for display only.
     """
     display = np.diag([1.0, 1.0, -1.0])
     rotation = display @ body_to_ned(*vector[3:6])
     origin = display @ vector[:3]
+    axis_length *= scale
     segments = [(origin, origin + axis_length*rotation[:, i]) for i in range(3)]
     for span, tilt in ((-parameters.engine_span, vector[13]), (parameters.engine_span, vector[12])):
-        base = origin + rotation @ np.array([0.0, span, parameters.engine_height])
+        base = origin + scale*(rotation @ np.array([0.0, span, parameters.engine_height]))
         direction = rotation @ np.array([np.cos(tilt), 0.0, -np.sin(tilt)])
         segments.append((base, base+axis_length*direction))
     return np.asarray(segments)
@@ -62,7 +65,7 @@ def create_display(history: FlightHistory, *, fps: float = 30, playback_speed: f
     axes[0, 0].set(title="Global position (NED)", ylabel="Position [m]")
     for i, (label, color) in enumerate(zip(("roll", "pitch", "yaw"), colors)):
         axes[0, 1].plot(times, np.rad2deg(states[:, 3+i]), label=label, color=color)
-    axes[0, 1].set(title="Craft attitude", ylabel="Angle [deg]")
+    axes[0, 1].set(title="Craft angles", ylabel="Angle [deg]")
     axes[1, 0].plot(times, np.rad2deg(stats.alpha), label="alpha")
     axes[1, 0].plot(times, np.rad2deg(stats.beta), label="beta")
     axes[1, 0].set(title="Airflow angles", ylabel="Angle [deg]")
@@ -88,11 +91,15 @@ def create_display(history: FlightHistory, *, fps: float = 30, playback_speed: f
     ax.set(xlabel="x / north [m]", ylabel="y / east [m]", zlabel="Altitude / -z [m]",
            title=history.title)
     path = states[:, :3]*[1, 1, -1]
+    # Keep orientation visible on long flights, including engine separation.
+    # Use one scale throughout playback so the craft does not change size.
+    path_span = float(np.ptp(path, axis=0).max())
+    scale = max(1.0, .12*path_span/length)
     # Bound all craft orientations and engine offsets, including a stationary
     # rotation experiment. Equal scales preserve the geometry of body axes.
-    margin = length + np.hypot(params.engine_span, params.engine_height)
+    margin = scale*(length + np.hypot(params.engine_span, params.engine_height))
     center = (path.max(axis=0)+path.min(axis=0))/2
-    radius = max(float(np.ptp(path, axis=0).max())/2 + margin, 1e-3)
+    radius = max(path_span/2 + margin, 1e-3)
     ax.set_xlim(center[0]-radius, center[0]+radius)
     ax.set_ylim(center[1]-radius, center[1]+radius)
     ax.set_zlim(center[2]-radius, center[2]+radius)
@@ -104,13 +111,14 @@ def create_display(history: FlightHistory, *, fps: float = 30, playback_speed: f
                      markevery=[1], markersize=4, label=label)[0]
              for label, color in zip(labels, (*colors, "tab:orange", "tab:purple"))]
     clock = ax.text2D(.02, .97, "", transform=ax.transAxes)
-    ax.text2D(.02, .02, "Dots mark positive axis / thrust direction. Height shown as -z.",
+    scale_note = " Craft enlarged for visibility." if scale > 1 else ""
+    ax.text2D(.02, .02, "Dots mark positive axis / thrust direction. Height shown as -z." + scale_note,
               transform=ax.transAxes, fontsize=8)
     ax.legend(loc="upper right", fontsize="small")
 
     def update(index):
         trail.set_data_3d(*path[:index+1].T)
-        for line, segment in zip(lines, craft_segments(states[index], params, length)):
+        for line, segment in zip(lines, craft_segments(states[index], params, length, scale=scale)):
             line.set_data_3d(*segment.T)
         clock.set_text(f"t = {times[index]:.3f} / {times[-1]:.3f} s")
         return trail, *lines, clock

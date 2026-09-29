@@ -1,8 +1,34 @@
-Python implementation of **VTOL_dynamics.pdf**, with all 14 states, independent
+Python implementation of VTOL dynamics showcased within the "DERIVATION OF THE MATHEMATICAL MODEL OF A VERTICAL TAKE-OFF UNMANNED AERIAL VEHICLE WITH TILTED-ROTOR DRIVE", with all 14 states, independent
 motor tilts, aerodynamic coefficient maps, and RK45 integration. The modules
 contain pure functions; `VTOLModel` alone stores the evolving state and time.
 The supplied parameters are illustrative and must be replaced with measured
 or identified values before aircraft validation.
+
+Hover and forward straight-level trim scripts accept a craft JSON file as a
+positional argument and print equilibrium states and controls:
+
+```powershell
+.\.venv\Scripts\python.exe find_hover_trim.py examples/sample_parameters.json
+.\.venv\Scripts\python.exe find_forward_trim.py examples/sample_parameters.json --engine-tilt 0 --airspeed 12 --max-elevator-deflection 25 --max-engine-rpm 8000
+```
+
+Forward trim scans the full aerodynamic alpha range and applies Brent's method
+to every detected sign-changing interval. It reports candidates and rejection
+reasons before preferring a feasible pre-stall solution with small absolute
+alpha. CLI angles use degrees; speed uses m/s; the RPM limit applies to each
+engine. Optional `--alpha-min`, `--alpha-max`, and `--grid-points` control
+validity filtering and scan resolution. See [trim documentation](docs/trim.md)
+for equations, PDF sign corrections, limits, and Python usage.
+
+```powershell
+.\.venv\Scripts\python.exe find_transition_trim.py examples/sample_parameters.json --max-engine-rpm 8000 --max-elevator-deflection 25 --cruise-airspeed 12 --o transition.png
+```
+
+`--o FILENAME` optionally saves the plot; `--no-show` suppresses the window.
+Specify a cruise interval with `--cruise-airspeed 12 18`. Additional tilt,
+pitch, aerodynamic-validity, lateral-surface and shaft-power constraints are
+available through `--help`. See [transition search documentation](docs/transition.md)
+for the numerical method, resolution controls, and interpretation of the path.
 
 From the project directory, using the existing environment:
 
@@ -21,11 +47,7 @@ Convert an XFLR5 plane polar text export into a parameter JSON template:
 # Optional: -o aircraft.json --stall-at-extremes
 ```
 
-The default output is `T1.json`. Missing values are `"provide-data"` and must
-be completed before simulation. The supplied polar recovers 7 of 41 parameter
-slots; the stall flag fills two assumed thresholds and enables stall (10/41).
-See [the import guide and recovery report](docs/xflr5_import.md) for options,
-angle selection, units, and the limits of this beta-zero polar.
+Missing values are `"provide-data"` and must be completed before simulation. The supplied polar recovers 7 of 41 parameter slots; the stall flag fills two assumed thresholds and enables stall (10/41). See [the import guide and recovery report](docs/xflr5_import.md) for options, angle selection, units, and the limits of this beta-zero polar.
 
 ```python
 import math
@@ -168,7 +190,7 @@ The implementation follows these choices from the PDF:
   has first-order lag and a rate limit; mechanical angle stops are not imposed.
 - Euler kinematics retain the PDF's pitch singularity. Evaluation very near
   `pitch = +/- pi/2` raises an error. Use a quaternion formulation for trajectories
-  that need to pass through gimbal lock.
+that need to pass through gimbal lock.
 
 Terrain is a frictionless, nonbouncing point contact at the CoM against `z=0`.
 On impact, only the downward **earth-frame** velocity component is removed;
@@ -272,7 +294,7 @@ statistics window. Run these commands from the repository root:
 .\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.bicopter_translation --time 3 --propeller-speed 90 --engine-tilt 90
 .\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.bicopter_rotation --time 1 --right-engine-tilt 90 --left-engine-tilt 80 --right-propeller-speed 65 --left-propeller-speed 60
 .\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.glide --time 3 --u 12 --v 0 --w 0
-.\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.full_model --time 1 --right-engine-tilt 30 --left-engine-tilt 20 --right-propeller-speed 65 --left-propeller-speed 60 --u 12 --v 0 --w 0
+.\.venv\Scripts\python.exe -m vtol_dynamics.playgrounds.full_model --time 1 --control-right-motor-tilt 30 --control-left-motor-tilt 20 --control-right-propeller-speed 65 --control-left-propeller-speed 60 --initial-u 12
 ```
 
 All command-line **tilts are in degrees**, propeller speeds are in **rev/s**,
@@ -297,12 +319,35 @@ For example:
 The glide playground starts with only `u`, `v`, and `w` set and keeps all control
 inputs zero. The `full_model` playground uses the complete `VTOLModel`, with
 engine forces/moments, aerodynamic forces/moments, gravity, and coupled
-translation/rotation all active. It accepts independent left/right engine tilt
-and speed commands plus initial body velocities `--u`, `--v`, and `--w`.
-Position, attitude, angular rates, and control-surface deflections are zero
-initially. Commands remain constant throughout the simulation; surface
-deflections stay zero. It also supports `--instant-tilt` (or `instant_tilt=True`
-in Python); otherwise actual engine tilts start at zero.
+translation/rotation all active. Every argument is optional: duration defaults
+to **1 second**, and every omitted initial state or control component is **zero**.
+State arguments use `--initial-<field>` and constant commands use
+`--control-<field>`, matching the model's field names with hyphens:
+
+| Arguments | Units / meaning |
+| --- | --- |
+| `--initial-x`, `--initial-y`, `--initial-z` | NED position [m]; negative z is above ground. |
+| `--initial-roll`, `--initial-pitch`, `--initial-yaw` | Euler attitude [deg]. |
+| `--initial-u`, `--initial-v`, `--initial-w` | Body linear velocity [m/s]. |
+| `--initial-p`, `--initial-q`, `--initial-r` | Body angular rates [deg/s]. |
+| `--initial-right-motor-tilt`, `--initial-left-motor-tilt` | Actual initial motor tilts [deg]. |
+| `--control-right-motor-tilt`, `--control-left-motor-tilt` | Constant commanded motor tilts [deg]. |
+| `--control-right-propeller-speed`, `--control-left-propeller-speed` | Constant nonnegative propeller speeds [rev/s]. |
+| `--control-elevator-deflection`, `--control-aileron-deflection`, `--control-rudder-deflection` | Constant surface deflections [deg]. |
+
+For the full-model playground, these names replace `--u`, `--v`, `--w`,
+`--right-engine-tilt`, `--left-engine-tilt`, the unprefixed propeller-speed
+arguments, and the unprefixed surface-deflection arguments. `--instant-tilt`
+has been removed: set each initial motor tilt explicitly. Initial tilts and
+commands are independent, and actuator dynamics remain active. To start at a
+commanded tilt, provide the same value for both, for example
+`--initial-right-motor-tilt 30 --control-right-motor-tilt 30`.
+
+Python `full_model.run(parameters, simulation_time=1.0, ...)` accepts the same
+state/control names as keyword arguments with underscores in place of hyphens,
+such as `initial_z=-10`, `initial_u=12`, and `control_elevator_deflection=-0.02`.
+Python angles use **radians** and angular rates use **rad/s**. All omitted state
+and control keywords default to zero; `instant_tilt` has been removed.
 
 Terrain collision is disabled in all four experiments, allowing
 motion below altitude zero. No trim, initial altitude, or initial attitude is
@@ -312,6 +357,10 @@ The animation runs once from the first sample to the last. Three colored lines
 extend from the CoM toward the positive body x/y/z axes; two more extend from
 the engine offsets along their actual tilted thrust directions. Endpoint dots
 indicate the positive direction. The trajectory grows as the craft moves.
+For long trajectories, the craft lines and engine offsets are enlarged together
+so orientation stays legible. Line length is at least 12% of the largest flight-path
+span, with a constant display scale throughout playback. Position data stays in
+metres, and the plot notes when the craft is enlarged.
 The 3-D view uses north, east, and **altitude = -z** so upward flight appears
 upward. The global position statistics retain the model's **NED z** convention.
 
@@ -332,7 +381,7 @@ Shared optional arguments:
 | `--dt 0.02` | Sampling interval in seconds. RK45 integrates adaptively between samples; a final partial interval reaches the requested duration. |
 | `--fps 30` | Maximum animation frame rate. Plot statistics retain all simulation samples. |
 | `--playback-speed 2` | Play the animation at twice simulation speed. |
-| `--axis-length 2` | Display axis/engine lines at this length in metres; useful for visibility along a long flight path. Default: half wingspan. |
+| `--axis-length 2` | Minimum axis/engine line length in metres; automatically enlarged for long flight paths. Default: half wingspan. |
 | `--output directory` | Save `flight.html` (animation with playback controls), `statistics.png`, and `history.csv`. Existing files with these names are replaced. |
 | `--no-show` | Suppress GUI windows; combine with `--output` for headless exports, or use alone for a console summary. |
 
